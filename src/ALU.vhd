@@ -42,6 +42,15 @@ end ALU;
 architecture Behavioral of ALU is
 
 begin
-
-
+process(i_A, i_B, i_op)
+begin
+    if i_op = "000" then
+        o_result <= i_A + i_B;
+    else if i_op = "001" then
+        o_result <= i_A - i_B;
+    else if i_op = "010" then
+        o_result <= i_A and i_B;
+    else if i_op = "011" then
+        o_result <= i_A or i_B;
+    end if;
 end Behavioral;

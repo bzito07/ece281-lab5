@@ -39,7 +39,30 @@ end controller_fsm;
 
 architecture FSM of controller_fsm is
 
+    type sm_state is (CLEAR, Load_op_1, Load_op_2, RESULT);
+    
+    signal current_state, next_state: sm_state;
+    
 begin
 
+    next_state  <=  Load_op_1       when (current_state = CLEAR)        else
+                    Load_op_2       when (current_state = Load_op_1)    else
+                    RESULT          when (current_state = Load_op_2)    else
+                    CLEAR           when (current_state = RESULT)       else
+                    CLEAR;
+
+register_proc : process (i_reset, i_adv)
+begin
+    if i_reset = '1' then
+        current_state <= CLEAR;        -- reset state is CLEAR
+    elsif (i_adv = '0') then
+        current_state <= current_state;
+    elsif (i_adv = '1') then
+        current_state <= next_state;
+    end if;
+
+	end process register_proc;
+
+                    
 
 end FSM;

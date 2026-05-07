@@ -45,7 +45,7 @@ end top_basys3;
 architecture top_basys3_arch of top_basys3 is 
   
 	-- declare components and signals
-
+    
   
 begin
 	-- PORT MAPS ----------------------------------------
