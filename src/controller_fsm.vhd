@@ -51,18 +51,17 @@ begin
                     CLEAR           when (current_state = RESULT)       else
                     CLEAR;
 
-register_proc : process (i_reset, i_adv)
-begin
-    if i_reset = '1' then
-        current_state <= CLEAR;        -- reset state is CLEAR
-    elsif (i_adv = '0') then
-        current_state <= current_state;
-    elsif (i_adv = '1') then
-        current_state <= next_state;
-    end if;
+register_proc : process(i_adv)
 
+	begin
+        if rising_edge(i_adv) then
+           if i_reset = '1' then
+               current_state <= CLEAR;
+           else
+                current_state <= next_state;
+            end if;
+        end if;
 	end process register_proc;
 
-                    
-
+                   
 end FSM;

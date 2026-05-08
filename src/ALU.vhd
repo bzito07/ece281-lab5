@@ -84,20 +84,12 @@ begin
         o_result    <=  w_S when "000",
                         w_S when "001",
                         (i_A and i_B) when "010",
-                        (i_A or i_B) when "011",
+                        (i_A or i_B) when "011";
                         
+        o_flags(0)  <=  '1' when (w_S(7) = '1')         else '0';    -- Negative flag
+        o_flags(1)  <=  '1' when (w_S = "00000000")     else '0';     -- Zero flag
+        o_flags(2)  <=  '1' when ((w_carry = '1') and (i_op(1) = '0'))        else '0';     -- Carry flag
+        o_flags(3)  <=  '1' when (i_op(1) = '0') and (i_A(7) xor w_S(7)) and (i_A(7) xor i_B(7) xor i_op(0))       else '0';     -- Overflow flag
         
     
-    
-process(i_A, i_B, i_op)
-begin
-    if i_op = "000" then
-        o_result <= i_A + i_B;
-    else if i_op = "001" then
-        o_result <= i_A - i_B;
-    else if i_op = "010" then
-        o_result <= i_A and i_B;
-    else if i_op = "011" then
-        o_result <= i_A or i_B;
-    end if;
 end Behavioral;
