@@ -69,7 +69,8 @@ begin
 
     with i_op(0) select
         w_b <=  i_B when '0',
-                not i_B when '1';
+                not i_B when '1',
+                "00000000" when others;
 
     ripple_adder_1: ripple_adder
     port map(
@@ -84,12 +85,13 @@ begin
         o_result    <=  w_S when "000",
                         w_S when "001",
                         (i_A and i_B) when "010",
-                        (i_A or i_B) when "011";
+                        (i_A or i_B) when "011",
+                        "00000000" when others;
                         
         o_flags(0)  <=  '1' when (w_S(7) = '1')         else '0';    -- Negative flag
         o_flags(1)  <=  '1' when (w_S = "00000000")     else '0';     -- Zero flag
         o_flags(2)  <=  '1' when ((w_carry = '1') and (i_op(1) = '0'))        else '0';     -- Carry flag
-        o_flags(3)  <=  '1' when (i_op(1) = '0') and (i_A(7) xor w_S(7)) and (i_A(7) xor i_B(7) xor i_op(0))       else '0';     -- Overflow flag
+        o_flags(3)  <=  '1' when (i_op(1) = '0') and ((i_A(7) xor w_S(7)) = '1') and ((i_A(7) xor i_B(7) xor i_op(0)) = '1')       else '0';     -- Overflow flag
         
     
 end Behavioral;
