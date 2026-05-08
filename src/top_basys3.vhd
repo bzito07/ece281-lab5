@@ -52,8 +52,11 @@ architecture top_basys3_arch of top_basys3 is
     signal w_result: std_logic_vector(7 downto 0);
     signal w_flags: std_logic_vector(3 downto 0);
     
+        signal w_sign_twos: std_logic;
+        signal w_sign_TDM4: std_logic_vector(3 downto 0);
+
+    
     signal w_bin: std_logic_vector(7 downto 0);
-    signal w_sign: std_logic;
     signal w_hund: std_logic_vector(3 downto 0);
     signal w_tens: std_logic_vector(3 downto 0);
     signal w_ones: std_logic_vector(3 downto 0);
@@ -92,7 +95,7 @@ architecture top_basys3_arch of top_basys3 is
         generic ( constant k_WIDTH : natural  := 4); -- bits in input and output
         Port ( i_clk		: in  STD_LOGIC;
                i_reset		: in  STD_LOGIC; -- asynchronous
-               i_D3 		: in  STD_LOGIC;    -- changed to be just std_logic ==> wired up to o_sign for twos_comp
+               i_D3 		: in  STD_LOGIC_VECTOR (k_WIDTH - 1 downto 0);
                i_D2 		: in  STD_LOGIC_VECTOR (k_WIDTH - 1 downto 0);
                i_D1 		: in  STD_LOGIC_VECTOR (k_WIDTH - 1 downto 0);
                i_D0 		: in  STD_LOGIC_VECTOR (k_WIDTH - 1 downto 0);
@@ -157,7 +160,7 @@ begin
             port map(
                 i_A       => sw,
                 i_B       => sw,
-                i_op      => sw,
+                i_op      => sw(2 downto 0),
                 o_result  => w_result,
                 o_flags   => w_flags
                 );
@@ -165,18 +168,18 @@ begin
         twos_comp_inst: twos_comp
             port map(
                 i_bin  => w_result,
-                o_sign => w_sign,
+                o_sign => w_sign_twos,
                 o_hund => w_hund,
                 o_tens => w_tens,
                 o_ones => w_ones
                 );
                 
     	TDM4_inst: TDM4
-    	   generic map ( k_WIDTH => 7 )
+    	   generic map ( k_WIDTH => 4 )
     	   port map(
     	      i_clk        => w_clk_div,
     	      i_reset      => btnU,         -----------------could be clk or fsm reset, not sure----------------------------------------
-    	      i_D3         => w_sign,
+    	      i_D3         => w_sign_TDM4,
     	      i_D2         => w_hund,
     	      i_D1         => w_tens,
     	      i_D0         => w_ones,
@@ -202,10 +205,17 @@ begin
 	-- reset signals
 	
 	-- Seg and Anode
-	with w_sign select
+	with w_sign_twos select            --Pass sign value to a 4 bit wire
+	   w_sign_TDM4 <= "0001" when '1',
+	                  "0000" when others;
+	
+	with w_sign_twos select            --negative sign when negative
 	   seg <= "1111110" when '1',
 	          w_seg when others;
 	
+	with w_cycle select                --clear display when in CLEAR
+	   seg <= "1111111" when "0000",
+	          w_seg when others;
 	
 	
 end top_basys3_arch;
