@@ -30,7 +30,8 @@ entity top_basys3 is
         -- inputs
         clk     :   in std_logic; -- native 100MHz FPGA clock
         sw      :   in std_logic_vector(7 downto 0); -- operands and opcode
-        btnU    :   in std_logic; -- reset
+        btnU    :   in std_logic; -- master reset
+        btnL    :   in std_logic; -- clock reset
         btnC    :   in std_logic; -- fsm cycle
         
         -- outputs
@@ -45,26 +46,32 @@ end top_basys3;
 architecture top_basys3_arch of top_basys3 is 
   
     signal w_clk_div: std_logic;
+    signal w_reset_clk: std_logic;
+    signal w_reset_master: std_logic;
 
     signal w_adv: std_logic;
     signal w_cycle: std_logic_vector(3 downto 0);
+    
+    signal w_A: std_logic_vector(7 downto 0);
+    signal w_B: std_logic_vector(7 downto 0);
     
     signal w_result: std_logic_vector(7 downto 0);
     signal w_flags: std_logic_vector(3 downto 0);
     
         signal w_sign_twos: std_logic;
-        signal w_sign_TDM4: std_logic_vector(3 downto 0);
+        signal w_sign_7SD: std_logic_vector(6 downto 0);
 
     
     signal w_bin: std_logic_vector(7 downto 0);
     signal w_hund: std_logic_vector(3 downto 0);
     signal w_tens: std_logic_vector(3 downto 0);
-    signal w_ones: std_logic_vector(3 downto 0);
+    signal w_ones: std_logic_vector(3 downto 0); 
     
     signal w_data_hex: std_logic_vector(3 downto 0);
     signal w_sel: std_logic_vector(3 downto 0);
     
-    signal w_seg: std_logic_vector(6 downto 0);
+    signal w_seg_7SD: std_logic_vector(6 downto 0);
+    signal w_seg_mux: std_logic_vector(6 downto 0);
   
 	-- declare components and signals
 	
@@ -133,17 +140,17 @@ architecture top_basys3_arch of top_basys3 is
 begin
 	-- PORT MAPS ----------------------------------------
     	clock_divider_inst: clock_divider
-    	   generic map ( k_DIV => 25000000 ) -- 2 Hz clock from 100 MHz
+    	   generic map ( k_DIV => 50000 ) -- 2 Hz clock from 100 MHz
            port map (						  
                i_clk   => clk,
-               i_reset => btnU,
+               i_reset => w_reset_clk,
                o_clk   => w_clk_div
     	   );
     	
     	button_debounce_inst: button_debounce
     	   port map(
     	      clk      => clk,
-    	      reset    => btnU,
+    	      reset    => w_reset_master,
     	      button   => btnC,
     	      action   => w_adv
     	   );
@@ -151,7 +158,7 @@ begin
     	   
     	controller_fsm_inst: controller_fsm
     	   port map(
-    	       i_reset =>  btnU,
+    	       i_reset =>  w_reset_master,
     	       i_adv   =>  w_adv,
     	       o_cycle =>  w_cycle
                );
@@ -167,7 +174,7 @@ begin
 
         twos_comp_inst: twos_comp
             port map(
-                i_bin  => w_result,
+                i_bin  => w_bin,
                 o_sign => w_sign_twos,
                 o_hund => w_hund,
                 o_tens => w_tens,
@@ -178,19 +185,19 @@ begin
     	   generic map ( k_WIDTH => 4 )
     	   port map(
     	      i_clk        => w_clk_div,
-    	      i_reset      => btnU,         -----------------could be clk or fsm reset, not sure----------------------------------------
-    	      i_D3         => w_sign_TDM4,
+    	      i_reset      => w_reset_master,         -----------------could be clk or fsm reset, not sure----------------------------------------
+    	      i_D3         => "0000",      --hardcoded, not going to use this value, will pass the sign through a separate datapath
     	      i_D2         => w_hund,
     	      i_D1         => w_tens,
     	      i_D0         => w_ones,
     	      o_data       => w_data_hex,
-    	      o_sel        => an
+    	      o_sel        => w_sel
     	   );
     	   
     	sevenseg_decoder_inst: sevenseg_decoder
     	   port map(
     	      i_Hex    => w_data_hex,
-    	      o_seg_n  => w_seg
+    	      o_seg_n  => w_seg_7SD
     	   );
 	
 	-- CONCURRENT STATEMENTS ----------------------------
@@ -201,21 +208,55 @@ begin
     led(3 downto 0) <= w_cycle;
     
 	-- leave unused switches UNCONNECTED. Ignore any warnings this causes.
+	-- registers before ALU
+register_proc_1 : process(w_cycle(1))
+	begin
+        if rising_edge(w_cycle(1)) then    
+           w_A <= sw;
+        end if;
+	end process register_proc_1;
+
+register_proc_2 : process(w_cycle(1))
+	begin
+        if rising_edge(w_cycle(2)) then    
+           w_B <= sw;
+        end if;
+	end process register_proc_2;
+
+
+	-- MUX after ALU, passes to twos_comp
 	
-	-- reset signals
+	with w_cycle select
+	   w_bin   <=  w_A when "0010",
+	               w_B when "0100",
+	               w_result when "1000",
+	               "11111111" when others;
+	
+	
 	
 	-- Seg and Anode
-	with w_sign_twos select            --Pass sign value to a 4 bit wire
-	   w_sign_TDM4 <= "0001" when '1',
-	                  "0000" when others;
 	
-	with w_sign_twos select            --negative sign when negative
-	   seg <= "1111110" when '1',
-	          w_seg when others;
-	
-	with w_cycle select                --clear display when in CLEAR
-	   seg <= "1111111" when "0000",
-	          w_seg when others;
-	
-	
+    -- MUX passes a negative sign or clear display to the next MUX
+    with w_sign_twos select
+        w_sign_7SD  <=  "0111111" when '1',
+                        "1111111" when '0';
+    
+    -- MUX displays 7SD output except for the last display, displays sign output
+    with w_sel select
+        w_seg_mux   <=  w_sign_7SD when "0111",
+                        w_seg_7SD when others;                        
+                        
+    -- MUX clears all displays in state 1, displays results other times
+    with w_cycle select
+        seg <= "1111111" when "0001",   -- result passed directly to seg output
+               w_seg_mux when others;    
+    
+    -- passes selector signal to anodes
+    an  <=  w_sel;
+    
+    -- wire reset signals to buttons
+    w_reset_clk <= btnL or btnU;
+    w_reset_master <= btnU;
+    
 end top_basys3_arch;
+

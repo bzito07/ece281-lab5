@@ -51,13 +51,19 @@ begin
                     CLEAR           when (current_state = RESULT)       else
                     CLEAR;
 
+    with current_state select
+        o_cycle <=  "0001" when CLEAR,
+                    "0010" when Load_op_1,
+                    "0100" when Load_op_2,
+                    "1000" when RESULT,
+                    "0001" when others;
+                    
 register_proc : process(i_adv)
 
 	begin
-        if rising_edge(i_adv) then
-           if i_reset = '1' then
-               current_state <= CLEAR;
-           else
+        if i_reset = '1' then
+            current_state <= CLEAR;
+            else if rising_edge(i_adv) then
                 current_state <= next_state;
             end if;
         end if;

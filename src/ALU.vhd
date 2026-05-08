@@ -91,7 +91,7 @@ begin
         o_flags(0)  <=  '1' when (w_S(7) = '1')         else '0';    -- Negative flag
         o_flags(1)  <=  '1' when (w_S = "00000000")     else '0';     -- Zero flag
         o_flags(2)  <=  '1' when ((w_carry = '1') and (i_op(1) = '0'))        else '0';     -- Carry flag
-        o_flags(3)  <=  '1' when (i_op(1) = '0') and ((i_A(7) xor w_S(7)) = '1') and ((i_A(7) xor i_B(7) xor i_op(0)) = '1')       else '0';     -- Overflow flag
+        o_flags(3)  <=  '1' when (i_op(1) = '0') and ((i_A(7) xor w_S(7)) = '1') and (not((i_A(7) xor i_B(7) xor i_op(0)) = '1'))       else '0';     -- Overflow flag
         
     
 end Behavioral;
