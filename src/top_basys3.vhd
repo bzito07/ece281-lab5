@@ -55,7 +55,7 @@ architecture top_basys3_arch of top_basys3 is
     signal w_A: std_logic_vector(7 downto 0);
     signal w_B: std_logic_vector(7 downto 0);
     
-    signal w_result: std_logic_vector(7 downto 0);
+    signal w_result_new: std_logic_vector(7 downto 0);
     signal w_flags: std_logic_vector(3 downto 0);
     
         signal w_sign_twos: std_logic;
@@ -140,7 +140,7 @@ architecture top_basys3_arch of top_basys3 is
 begin
 	-- PORT MAPS ----------------------------------------
     	clock_divider_inst: clock_divider
-    	   generic map ( k_DIV => 50000 ) -- 2 Hz clock from 100 MHz
+    	   generic map ( k_DIV => 50000 ) -- 1000 Hz clock from 100 MHz
            port map (						  
                i_clk   => clk,
                i_reset => w_reset_clk,
@@ -165,10 +165,10 @@ begin
 
         ALU_inst: ALU
             port map(
-                i_A       => sw,
-                i_B       => sw,
+                i_A       => w_A,
+                i_B       => w_B,
                 i_op      => sw(2 downto 0),
-                o_result  => w_result,
+                o_result  => w_result_new,
                 o_flags   => w_flags
                 );
 
@@ -229,7 +229,7 @@ register_proc_2 : process(w_cycle(2))
 	with w_cycle select
 	   w_bin   <=  w_A when "0010",
 	               w_B when "0100",
-	               w_result when "1000",
+	               w_result_new when "1000",
 	               "11111111" when others;
 	
 	
