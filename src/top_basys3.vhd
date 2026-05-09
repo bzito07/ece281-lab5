@@ -216,7 +216,7 @@ register_proc_1 : process(w_cycle(1))
         end if;
 	end process register_proc_1;
 
-register_proc_2 : process(w_cycle(1))
+register_proc_2 : process(w_cycle(2))
 	begin
         if rising_edge(w_cycle(2)) then    
            w_B <= sw;
@@ -239,7 +239,8 @@ register_proc_2 : process(w_cycle(1))
     -- MUX passes a negative sign or clear display to the next MUX
     with w_sign_twos select
         w_sign_7SD  <=  "0111111" when '1',
-                        "1111111" when '0';
+                        "1111111" when '0',
+                        "1111111" when others;
     
     -- MUX displays 7SD output except for the last display, displays sign output
     with w_sel select
